@@ -39,7 +39,7 @@ std::string stringify(const program &prog);
  * expected to be explicitly deallocated by the caller AFTER calling the predict
  * function.
  */
-void symFit(const float *input, const float *labels,
+void symFit(const Dataset<float> &input, const float *labels,
             const float *sample_weights, const int n_rows, const int n_cols,
             param &params, program_t &final_progs,
             std::vector<std::vector<program>> &history);
@@ -52,7 +52,7 @@ void symFit(const float *input, const float *labels,
  * @param best_prog   device pointer to best AST fit during training
  * @param output      device pointer to output values
  */
-void symRegPredict(const float *input, const int n_rows,
+void symRegPredict(const Dataset<float> &input, const int n_rows,
                    const program_t &best_prog, float *output);
 
 /**
@@ -67,7 +67,7 @@ void symRegPredict(const float *input, const int n_rows,
  * made using this
  * @param output      device pointer to output probability(in col major format)
  */
-void symClfPredictProbs(const float *input, const int n_rows,
+void symClfPredictProbs(const Dataset<float> &input, const int n_rows,
                         const param &params, const program_t &best_prog,
                         float *output);
 
@@ -81,8 +81,9 @@ void symClfPredictProbs(const float *input, const int n_rows,
  * @param best_prog   Best program obtained after training
  * @param output      Device pointer to output predictions
  */
-void symClfPredict(const float *input, const int n_rows, const param &params,
-                   const program_t &best_prog, float *output);
+void symClfPredict(const Dataset<float> &input, const int n_rows,
+                   const param &params, const program_t &best_prog,
+                   float *output);
 
 /**
  * @brief Transform the values in the input feature matrix according to the
@@ -95,7 +96,7 @@ void symClfPredict(const float *input, const int n_rows, const param &params,
  * @param n_cols      number of columns of the feature matrix
  * @param output      device pointer to transformed input
  */
-void symTransform(const float *input, const param &params,
+void symTransform(const Dataset<float> &input, const param &params,
                   const program_t &final_progs, const int n_rows,
                   const int n_cols, float *output);
 

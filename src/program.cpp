@@ -1,11 +1,13 @@
 #include "constants.h"
 #include "custom_distributions.h"
+#include "data.h"
 #include "node_detail.h"
 #include "philox_engine.h"
 #include "reg_stack.h"
 #include <algorithm>
 #include <cstdint>
 #include <fitness.h>
+#include <iostream>
 #include <node.h>
 #include <numeric>
 #include <program.h>
@@ -13,42 +15,55 @@
 #include <stack>
 
 namespace genetic {
-
+std::string stringify(const program &);
 /**
  * Execution kernel for a single program. We assume that the input data
  * is stored in column major format.
  */
 template <int MaxSize = MAX_STACK_SIZE>
-void execute_kernel(const program_t d_progs, const float *data, float *y_pred,
-                    const uint64_t n_rows, const uint64_t n_progs) {
+void execute_kernel(const program_t d_progs, const Dataset<float> &data,
+                    float *y_pred, const uint64_t n_rows,
+                    const uint64_t n_progs) {
   for (uint64_t pid = 0; pid < n_progs; ++pid) {
-    for (uint64_t row_id = 0; row_id < n_rows; ++row_id) {
-
-      stack<float, MaxSize> eval_stack;
-      program_t curr_p = d_progs + pid; // Current program
-
+    std::vector<float> lhs(data.batch_size());
+    auto *res = new float[data.batch_size()];
+    std::vector<float> rhs(data.batch_size());
+    for (size_t batch = 0; batch < data.num_batches(); batch++) {
+      using stack_t = stack<float, MaxSize>;
+      std::vector<stack_t> stacks(data.batch_size());
+      program_t curr_p = d_progs + pid;
       int end = curr_p->len - 1;
       node *curr_node = curr_p->nodes + end;
-
-      float res = 0.0f;
-      float in[2] = {0.0f, 0.0f};
 
       while (end >= 0) {
         if (detail::is_nonterminal(curr_node->t)) {
           int ar = detail::arity(curr_node->t);
-          in[0] = eval_stack.pop(); // Min arity of function is 1
-          if (ar > 1)
-            in[1] = eval_stack.pop();
+          for (size_t i = 0; i < data.batch_size(); i++) {
+            auto nv = stacks[i].pop();
+            lhs[i] = nv;
+          }
+          if (ar > 1) {
+            for (size_t i = 0; i < data.batch_size(); i++) {
+              auto nv = stacks[i].pop();
+              rhs[i] = nv;
+            }
+          }
         }
-        res = detail::evaluate_node(*curr_node, data, n_rows, row_id, in);
-        eval_stack.push(res);
+        detail::evaluate_node_batched(*curr_node, data, batch, lhs.data(),
+                                      rhs.data(), res);
+        for (size_t i = 0; i < data.batch_size(); i++) {
+          stacks[i].push(res[i]);
+        }
         curr_node--;
         end--;
       }
-
-      // Outputs stored in col-major format
-      y_pred[pid * n_rows + row_id] = eval_stack.pop();
+      // still write y_pred in column major for now
+      for (size_t i = 0; i < data.batch_size(); i++) {
+        auto re = stacks[i].pop();
+        y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re;
+      }
     }
+    free(res);
   }
 }
 
@@ -102,13 +117,13 @@ void compute_metric(int n_rows, int n_progs, const float *y,
 }
 
 void execute(const program_t &d_progs, const int n_rows, const int n_progs,
-             const float *data, float *y_pred) {
+             const Dataset<float> &data, float *y_pred) {
   execute_kernel(d_progs, data, y_pred, static_cast<uint64_t>(n_rows),
                  static_cast<uint64_t>(n_progs));
 }
 
 void find_fitness(program_t d_prog, float *score, const param &params,
-                  const int n_rows, const float *data, const float *y,
+                  const int n_rows, const Dataset<float> &data, const float *y,
                   const float *sample_weights) {
 
   // Compute predicted values
@@ -121,7 +136,7 @@ void find_fitness(program_t d_prog, float *score, const param &params,
 
 void find_batched_fitness(int n_progs, program_t d_progs, float *score,
                           const param &params, const int n_rows,
-                          const float *data, const float *y,
+                          const Dataset<float> &data, const float *y,
                           const float *sample_weights) {
 
   std::vector<float> y_pred((uint64_t)n_rows * (uint64_t)n_progs);
@@ -133,7 +148,7 @@ void find_batched_fitness(int n_progs, program_t d_progs, float *score,
 }
 
 void set_fitness(program &h_prog, const param &params, const int n_rows,
-                 const float *data, const float *y,
+                 const Dataset<float> &data, const float *y,
                  const float *sample_weights) {
 
   std::vector<float> score(1);
@@ -146,7 +161,7 @@ void set_fitness(program &h_prog, const param &params, const int n_rows,
 
 void set_batched_fitness(int n_progs, std::vector<program> &h_progs,
                          const param &params, const int n_rows,
-                         const float *data, const float *y,
+                         const Dataset<float> &data, const float *y,
                          const float *sample_weights) {
 
   std::vector<float> score(n_progs);

@@ -17,6 +17,7 @@
 // Include ctimer for end-to-end timing
 #include "common.h"
 #include "ctimer.h"
+#include "data.h"
 #include "fitness.h"
 #include "genetic.h"
 #include "node.h"
@@ -189,6 +190,8 @@ void run_symbolic_regression(const std::string &dataset_file) {
   std::vector<float> y_test = y_split.second;
 
   // Flatten data for genetic library (column-major)
+  Dataset X_train_ds = Dataset(X_train, 4);
+  Dataset X_test_ds = Dataset(X_test, 4);
   std::vector<float> X_train_flat = utils::flatten_column_major(X_train);
   std::vector<float> X_test_flat = utils::flatten_column_major(X_test);
 
@@ -240,7 +243,7 @@ void run_symbolic_regression(const std::string &dataset_file) {
   std::vector<std::vector<genetic::program>> history;
 
   // Train the model
-  genetic::symFit(X_train_flat.data(), y_train.data(), sample_weights.data(),
+  genetic::symFit(X_train_ds, y_train.data(), sample_weights.data(),
                   X_train.size(),    // Number of rows
                   X_train[0].size(), // Number of columns
                   params, final_programs, history);
@@ -255,11 +258,11 @@ void run_symbolic_regression(const std::string &dataset_file) {
   insertionSortPrograms(final_programs, params.population_size);
 
   std::vector<float> y_pred1(X_test.size());
-  genetic::symRegPredict(X_test_flat.data(), X_test.size(), &final_programs[0],
+  genetic::symRegPredict(X_test_ds, X_test.size(), &final_programs[0],
                          y_pred1.data());
 
   std::vector<float> y_pred2(X_test.size());
-  genetic::symRegPredict(X_test_flat.data(), X_test.size(), &final_programs[1],
+  genetic::symRegPredict(X_test_ds, X_test.size(), &final_programs[1],
                          y_pred2.data());
 
   // Calculate MSE on test set
@@ -299,144 +302,151 @@ void run_symbolic_regression(const std::string &dataset_file) {
   delete[] final_programs;
 }
 
-void run_symbolic_classification(const std::string &dataset_file) {
-  std::cout << "\n===== Symbolic Classification Benchmark =====\n" << std::endl;
+void run_symbolic_classification(const std::string &dataset_file) {}
+//   std::cout << "\n===== Symbolic Classification Benchmark =====\n" <<
+//   std::endl;
 
-  // Initialize ctimer for end-to-end timing
-  ctimer_t end_to_end_timer;
-  ctimer_start(&end_to_end_timer);
+//   // Initialize ctimer for end-to-end timing
+//   ctimer_t end_to_end_timer;
+//   ctimer_start(&end_to_end_timer);
 
-  // Load dataset
-  std::cout << "Loading dataset..." << std::endl;
+//   // Load dataset
+//   std::cout << "Loading dataset..." << std::endl;
 
-  auto dataset = utils::load_dataset(dataset_file);
-  auto X = dataset.first;
-  auto y = dataset.second;
+//   auto dataset = utils::load_dataset(dataset_file);
+//   auto X = dataset.first;
+//   auto y = dataset.second;
 
-  std::cout << "Dataset dimensions: " << X.size() << " samples x "
-            << X[0].size() << " features" << std::endl;
+//   std::cout << "Dataset dimensions: " << X.size() << " samples x "
+//             << X[0].size() << " features" << std::endl;
 
-  // Split dataset
-  auto X_split = utils::train_test_split(X);
-  auto y_split = utils::train_test_split(y);
+//   // Split dataset
+//   auto X_split = utils::train_test_split(X);
+//   auto y_split = utils::train_test_split(y);
 
-  std::vector<std::vector<float>> X_train = X_split.first;
-  std::vector<std::vector<float>> X_test = X_split.second;
-  std::vector<float> y_train = y_split.first;
-  std::vector<float> y_test = y_split.second;
+//   std::vector<std::vector<float>> X_train = X_split.first;
+//   std::vector<std::vector<float>> X_test = X_split.second;
+//   std::vector<float> y_train = y_split.first;
+//   std::vector<float> y_test = y_split.second;
 
-  // Flatten data for genetic library (column-major)
-  std::vector<float> X_train_flat = utils::flatten_column_major(X_train);
-  std::vector<float> X_test_flat = utils::flatten_column_major(X_test);
+//   // Flatten data for genetic library (column-major)
+//   std::vector<float> X_train_flat = utils::flatten_column_major(X_train);
+//   std::vector<float> X_test_flat = utils::flatten_column_major(X_test);
 
-  // Create weights (all 1.0)
-  std::vector<float> sample_weights(y_train.size(), 1.0f);
+//   // Create weights (all 1.0)
+//   std::vector<float> sample_weights(y_train.size(), 1.0f);
 
-  // Set parameters
-  genetic::param params;
-  params.population_size = 16384;
-  params.generations = 16;
-  params.tournament_size = 16;
-  params.init_depth[0] = 2;
-  params.init_depth[1] = 6;
-  params.init_method = genetic::init_method_t::half_and_half;
-  params.num_features = X_train[0].size(); // Number of features
-  params.terminalRatio = 0.05;
+//   // Set parameters
+//   genetic::param params;
+//   params.population_size = 16384;
+//   params.generations = 16;
+//   params.tournament_size = 16;
+//   params.init_depth[0] = 2;
+//   params.init_depth[1] = 6;
+//   params.init_method = genetic::init_method_t::half_and_half;
+//   params.num_features = X_train[0].size(); // Number of features
+//   params.terminalRatio = 0.05;
 
-  // Function set for classification
-  params.function_set = {node::type::add,  node::type::sub, node::type::mul,
-                         node::type::sin,  node::type::cos, node::type::sq,
-                         node::type::sqrt, node::type::abs, node::type::fdim};
+//   // Function set for classification
+//   params.function_set = {node::type::add,  node::type::sub, node::type::mul,
+//                          node::type::sin,  node::type::cos, node::type::sq,
+//                          node::type::sqrt, node::type::abs,
+//                          node::type::fdim};
 
-  // Don't worry if you see stuff like sqrt(-5) -> we consider only the absolute
-  // value in that case
-  params.arity_set = {
-      {1,
-       {node::type::abs, node::type::sin, node::type::cos, node::type::sq,
-        node::type::sqrt}},
-      {2,
-       {node::type::add, node::type::sub, node::type::mul, node::type::fdim}}};
+//   // Don't worry if you see stuff like sqrt(-5) -> we consider only the
+//   absolute
+//   // value in that case
+//   params.arity_set = {
+//       {1,
+//        {node::type::abs, node::type::sin, node::type::cos, node::type::sq,
+//         node::type::sqrt}},
+//       {2,
+//        {node::type::add, node::type::sub, node::type::mul,
+//        node::type::fdim}}};
 
-  params.metric = genetic::metric_t::logloss; // Use log loss forclassification
-  params.transformer =
-      genetic::transformer_t::sigmoid; // Use sigmoid for binary classification
-  params.parsimony_coefficient = 0.01f;
-  params.p_crossover = 0.80f; // High crossover probability
-  params.p_subtree_mutation = 0.05f;
-  params.p_hoist_mutation = 0.01f;
-  params.p_point_mutation = 0.01f;
-  params.max_samples = 1.0f;  // Use all samples
-  params.random_state = 2025; // For reproducibility
+//   params.metric = genetic::metric_t::logloss; // Use log loss
+//   forclassification params.transformer =
+//       genetic::transformer_t::sigmoid; // Use sigmoid for binary
+//       classification
+//   params.parsimony_coefficient = 0.01f;
+//   params.p_crossover = 0.80f; // High crossover probability
+//   params.p_subtree_mutation = 0.05f;
+//   params.p_hoist_mutation = 0.01f;
+//   params.p_point_mutation = 0.01f;
+//   params.max_samples = 1.0f;  // Use all samples
+//   params.random_state = 2025; // For reproducibility
 
-  // Running the symbolic classification
-  std::cout << "Training symbolic classifier with " << params.population_size
-            << " population size and " << params.generations << " generations "
-            << std::endl;
+//   // Running the symbolic classification
+//   std::cout << "Training symbolic classifier with " << params.population_size
+//             << " population size and " << params.generations << " generations
+//             "
+//             << std::endl;
 
-  // Create history vector to store programs
-  genetic::program_t final_programs;
-  final_programs = new genetic::program[params.population_size]();
+//   // Create history vector to store programs
+//   genetic::program_t final_programs;
+//   final_programs = new genetic::program[params.population_size]();
 
-  std::vector<std::vector<genetic::program>> history;
+//   std::vector<std::vector<genetic::program>> history;
 
-  // Train the model
-  genetic::symFit(X_train_flat.data(), y_train.data(), sample_weights.data(),
-                  X_train.size(),    // Number of rows
-                  X_train[0].size(), // Number of columns
-                  params, final_programs, history);
+//   // Train the model
+//   genetic::symFit(X_train_flat.data(), y_train.data(), sample_weights.data(),
+//                   X_train.size(),    // Number of rows
+//                   X_train[0].size(), // Number of columns
+//                   params, final_programs, history);
 
-  // // print and check programs from hsitory
-  // for (int i = 0; i < params.population_size; ++i) {
-  //   std::cout << "Gen " << 16 << " : "
-  //             << genetic::stringify(history[history.size() - 1][i])
-  //             << std::endl;
-  // }
+//   // // print and check programs from hsitory
+//   // for (int i = 0; i < params.population_size; ++i) {
+//   //   std::cout << "Gen " << 16 << " : "
+//   //             << genetic::stringify(history[history.size() - 1][i])
+//   //             << std::endl;
+//   // }
 
-  // Predict classes for best 2 programs acc to training
-  insertionSortPrograms(final_programs, params.population_size);
-  std::vector<float> y_pred1(X_test.size());
-  genetic::symClfPredict(X_test_flat.data(), X_test.size(), params,
-                         &final_programs[0], y_pred1.data());
+//   // Predict classes for best 2 programs acc to training
+//   insertionSortPrograms(final_programs, params.population_size);
+//   std::vector<float> y_pred1(X_test.size());
+//   genetic::symClfPredict(X_test_flat.data(), X_test.size(), params,
+//                          &final_programs[0], y_pred1.data());
 
-  std::vector<float> y_pred2(X_test.size());
-  genetic::symClfPredict(X_test_flat.data(), X_test.size(), params,
-                         &final_programs[1], y_pred2.data());
+//   std::vector<float> y_pred2(X_test.size());
+//   genetic::symClfPredict(X_test_ds, X_test.size(), params,
+//   &final_programs[1],
+//                          y_pred2.data());
 
-  float acc = utils::accuracy(y_test, y_pred1);
-  float acc2 = utils::accuracy(y_test, y_pred2);
+//   float acc = utils::accuracy(y_test, y_pred1);
+//   float acc2 = utils::accuracy(y_test, y_pred2);
 
-  // Extract the best programs and print some stats
-  if (history.back().size() > 0) {
-    genetic::program_t best_program1 = &final_programs[0];
-    std::cout << "Best program 1 details:" << std::endl;
-    std::cout << "- Length: " << best_program1->len << " nodes" << std::endl;
-    std::cout << "- Depth: " << best_program1->depth << std::endl;
-    std::cout << "- Raw fitness: " << best_program1->raw_fitness_ << std::endl;
-    std::cout << "- Test accuracy: " << acc << std::endl;
+//   // Extract the best programs and print some stats
+//   if (history.back().size() > 0) {
+//     genetic::program_t best_program1 = &final_programs[0];
+//     std::cout << "Best program 1 details:" << std::endl;
+//     std::cout << "- Length: " << best_program1->len << " nodes" << std::endl;
+//     std::cout << "- Depth: " << best_program1->depth << std::endl;
+//     std::cout << "- Raw fitness: " << best_program1->raw_fitness_ <<
+//     std::endl; std::cout << "- Test accuracy: " << acc << std::endl;
 
-    // Convert to string representation
-    std::string program_str = genetic::stringify(*best_program1);
-    std::cout << "- Program: " << program_str << std::endl;
+//     // Convert to string representation
+//     std::string program_str = genetic::stringify(*best_program1);
+//     std::cout << "- Program: " << program_str << std::endl;
 
-    genetic::program_t best_program2 = &final_programs[1];
-    std::cout << "Best program 2 details:" << std::endl;
-    std::cout << "- Length: " << best_program2->len << " nodes" << std::endl;
-    std::cout << "- Depth: " << best_program2->depth << std::endl;
-    std::cout << "- Raw fitness: " << best_program2->raw_fitness_ << std::endl;
-    std::cout << "- Test accuracy: " << acc2 << std::endl;
+//     genetic::program_t best_program2 = &final_programs[1];
+//     std::cout << "Best program 2 details:" << std::endl;
+//     std::cout << "- Length: " << best_program2->len << " nodes" << std::endl;
+//     std::cout << "- Depth: " << best_program2->depth << std::endl;
+//     std::cout << "- Raw fitness: " << best_program2->raw_fitness_ <<
+//     std::endl; std::cout << "- Test accuracy: " << acc2 << std::endl;
 
-    // Convert to string representation
-    std::string program_str2 = genetic::stringify(*best_program2);
-    std::cout << "- Program: " << program_str2 << std::endl;
-  }
+//     // Convert to string representation
+//     std::string program_str2 = genetic::stringify(*best_program2);
+//     std::cout << "- Program: " << program_str2 << std::endl;
+//   }
 
-  // Stop end-to-end timer and print results
-  ctimer_stop(&end_to_end_timer);
-  ctimer_measure(&end_to_end_timer);
-  ctimer_print(end_to_end_timer, "Symbolic Classification (End-to-End)");
+//   // Stop end-to-end timer and print results
+//   ctimer_stop(&end_to_end_timer);
+//   ctimer_measure(&end_to_end_timer);
+//   ctimer_print(end_to_end_timer, "Symbolic Classification (End-to-End)");
 
-  delete[] final_programs;
-}
+//   delete[] final_programs;
+// }
 
 int main(int argc, char *argv[]) {
   try {

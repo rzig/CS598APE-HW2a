@@ -75,7 +75,7 @@ typedef program *program_t;
  * @param y_pred     Pointer to output of program evaluation
  */
 void execute(const program_t &d_progs, const int n_rows, const int n_progs,
-             const float *data, float *y_pred);
+             const Dataset<float> &data, float *y_pred);
 
 /**
  * @brief Compute the loss based on the metric specified in the training
@@ -107,7 +107,7 @@ void compute_metric(int n_rows, int n_progs, const float *y,
  * @param sample_weights  Device pointer to sample weights
  */
 void find_fitness(program_t d_prog, float *score, const param &params,
-                  const int n_rows, const float *data, const float *y,
+                  const int n_rows, const Dataset<float> &data, const float *y,
                   const float *sample_weights);
 
 /**
@@ -125,7 +125,7 @@ void find_fitness(program_t d_prog, float *score, const param &params,
  */
 void find_batched_fitness(int n_progs, program_t d_progs, float *score,
                           const param &params, const int n_rows,
-                          const float *data, const float *y,
+                          const Dataset<float> &data, const float *y,
                           const float *sample_weights);
 
 /**
@@ -141,7 +141,7 @@ void find_batched_fitness(int n_progs, program_t d_progs, float *score,
  * @param sample_weights  Device pointer to sample weights
  */
 void set_fitness(program_t &d_prog, program &h_prog, const param &params,
-                 const int n_rows, const float *data, const float *y,
+                 const int n_rows, const Dataset<float> &data, const float *y,
                  const float *sample_weights);
 
 /**
@@ -158,7 +158,7 @@ void set_fitness(program_t &d_prog, program &h_prog, const param &params,
  */
 void set_batched_fitness(int n_progs, std::vector<program> &h_progs,
                          const param &params, const int n_rows,
-                         const float *data, const float *y,
+                         const Dataset<float> &data, const float *y,
                          const float *sample_weights);
 
 /**

@@ -1,6 +1,6 @@
-
 #include "constants.h"
 #include "custom_distributions.h"
+#include "data.h"
 #include "node_detail.h"
 #include <algorithm>
 #include <common.h>
@@ -87,8 +87,9 @@ void tournament_kernel(const std::vector<program> &progs, int *win_indices,
  */
 void cpp_evolve(const std::vector<program> &h_oldprogs,
                 std::vector<program> &h_nextprogs, const int n_samples,
-                const float *data, const float *y, const float *sample_weights,
-                const param &params, const int generation, const int seed) {
+                const Dataset<float> &data, const float *y,
+                const float *sample_weights, const param &params,
+                const int generation, const int seed) {
   auto n_progs = params.population_size;
   auto tour_size = params.tournament_size;
   auto n_tours = n_progs; // at least num_progs tournaments
@@ -359,7 +360,7 @@ std::string stringify(const program &prog) {
   return eqn;
 }
 
-void symFit(const float *input, const float *labels,
+void symFit(const Dataset<float> &input, const float *labels,
             const float *sample_weights, const int n_rows, const int n_cols,
             param &params, program_t &final_progs,
             std::vector<std::vector<program>> &history) {
@@ -464,13 +465,13 @@ void symFit(const float *input, const float *labels,
   }
 }
 
-void symRegPredict(const float *input, const int n_rows,
+void symRegPredict(const Dataset<float> &input, const int n_rows,
                    const program_t &best_prog, float *output) {
   // Assume best_prog is on device
   execute(best_prog, n_rows, 1, input, output);
 }
 
-void symClfPredictProbs(const float *input, const int n_rows,
+void symClfPredictProbs(const Dataset<float> &input, const int n_rows,
                         const param &params, const program_t &best_prog,
                         float *output) {
 
@@ -489,8 +490,9 @@ void symClfPredictProbs(const float *input, const int n_rows,
   }
 }
 
-void symClfPredict(const float *input, const int n_rows, const param &params,
-                   const program_t &best_prog, float *output) {
+void symClfPredict(const Dataset<float> &input, const int n_rows,
+                   const param &params, const program_t &best_prog,
+                   float *output) {
 
   // Memory for probabilities
   std::vector<float> probs(2 * n_rows);
@@ -505,7 +507,7 @@ void symClfPredict(const float *input, const int n_rows, const param &params,
   }
 }
 
-void symTransform(const float *input, const param &params,
+void symTransform(const Dataset<float> &input, const param &params,
                   const program_t &final_progs, const int n_rows,
                   const int n_cols, float *output) {
   // cudaStream_t stream = handle.get_stream();
