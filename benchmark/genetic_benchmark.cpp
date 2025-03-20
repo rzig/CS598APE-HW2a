@@ -82,7 +82,10 @@ flatten_column_major(const std::vector<std::vector<float>> &data) {
 template <typename T>
 std::pair<T, T> train_test_split(const T &data, float test_size = 0.2) {
   T train, test;
-  size_t test_count = static_cast<size_t>(data.size() * test_size);
+  size_t test_count = 0;
+  while (test_count < static_cast<size_t>(data.size() * test_size)) {
+    test_count += Dataset<T>::batch_size_;
+  }
   size_t train_count = data.size() - test_count;
 
   // Create a vector of indices

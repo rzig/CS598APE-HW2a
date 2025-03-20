@@ -13,7 +13,7 @@ template <typename T> class Dataset {
 public:
   Dataset(const std::vector<std::vector<T>> &input)
       : underlying_data_((T *)std::aligned_alloc(
-            alignof(T), sizeof(T) * (input[0].size() * input.size()))),
+            64, sizeof(T) * (input[0].size() * input.size()))),
         num_columns_(input[0].size()),
         num_batches_(input.size() / batch_size_) {
     size_t i = 0;
@@ -38,7 +38,7 @@ public:
 
   ~Dataset() { free(underlying_data_); }
 
-  static constexpr size_t batch_size_ = 4;
+  static constexpr size_t batch_size_ = 16;
 
 private:
   T *underlying_data_;
