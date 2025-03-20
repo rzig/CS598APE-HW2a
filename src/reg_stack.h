@@ -1,7 +1,5 @@
 #pragma once
-
 namespace genetic {
-
 /**
  * @brief A fixed capacity stack on device currently used for AST evaluation
  *
@@ -17,16 +15,12 @@ template <typename DataT, int MaxSize> struct stack {
       regs_[i] = DataT(0);
     }
   }
-
   /** Checks if the stack is empty */
   bool empty() const { return elements_ == 0; }
-
   /** Current number of elements in the stack */
   int size() const { return elements_; }
-
   /** Checks if the number of elements in the stack equal its capacity */
   bool full() const { return elements_ == MaxSize; }
-
   /**
    * @brief Pushes the input element to the top of the stack
    *
@@ -38,14 +32,11 @@ template <typename DataT, int MaxSize> struct stack {
    *       behavior.
    */
   void push(DataT val) {
-    for (int i = MaxSize - 1; i >= 0; --i) {
-      if (elements_ == i) {
-        ++elements_;
-        regs_[i] = val;
-      }
+    if (elements_ < MaxSize) {
+      regs_[elements_] = val;
+      ++elements_;
     }
   }
-
   /**
    * @brief Lazily pops the top element from the stack
    *
@@ -58,13 +49,10 @@ template <typename DataT, int MaxSize> struct stack {
    *       to all sorts of incorrect behavior.
    */
   DataT pop() {
-    for (int i = 0; i < MaxSize; ++i) {
-      if (elements_ == (i + 1)) {
-        elements_--;
-        return regs_[i];
-      }
+    if (elements_ > 0) {
+      --elements_;
+      return regs_[elements_];
     }
-
     return DataT(0);
   }
 
@@ -72,5 +60,4 @@ private:
   int elements_;
   DataT regs_[MaxSize];
 }; // struct stack
-
 } // namespace genetic
