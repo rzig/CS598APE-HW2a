@@ -2,6 +2,10 @@
 #include <cstddef>
 #include <cstdlib>
 #include <vector>
+#include "cuda_macros.h"
+#include <nvrtc.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 /**
  * Stores data in batches, where each batch is column major,
@@ -24,6 +28,11 @@ public:
         }
       }
     }
+    #ifdef CUDA_MODE
+    size_t total_size = sizeof(T)*input.size()*input[0].size();
+    CHECK_CUDA(cuMemAlloc(&device_data_, total_size));
+    CHECK_CUDA(cuMemcpyHtoD(device_data_, underlying_data_, total_size));
+    #endif
   }
 
   T *column_of_batch(size_t batch_idx, size_t column) const noexcept {
@@ -36,12 +45,31 @@ public:
 
   static constexpr size_t batch_size() { return batch_size_; }
 
-  ~Dataset() { free(underlying_data_); }
-
+  ~Dataset() {
+    free(underlying_data_);
+    #ifdef CUDA_MODE
+      if (device_data_) {
+        cuMemFree(device_data_);
+      }
+    #endif
+}
+#ifndef CUDA_MODE
   static constexpr size_t batch_size_ = 16;
+#endif
+#ifdef CUDA_MODE
+  static constexpr size_t batch_size_ = 1; // row major
+#endif
+#ifdef CUDA_MODE
+CUdeviceptr device_data() const {
+  return device_data_;
+}
+#endif
 
 private:
   T *underlying_data_;
+#ifdef CUDA_MODE
+CUdeviceptr device_data_;
+#endif
   size_t num_batches_;
   size_t num_columns_;
 };

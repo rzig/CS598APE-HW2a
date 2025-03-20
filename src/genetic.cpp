@@ -232,6 +232,7 @@ std::string stringify(const program &prog) {
       } else {
         // const
         eqn += std::to_string(prog.nodes[i].u.val);
+        eqn += "f";
       }
 
       int end_elem = ar_stack.top();
@@ -260,95 +261,95 @@ std::string stringify(const program &prog) {
         eqn += "atan2(";
         break;
       case node::type::div:
-        eqn += "div(";
+        eqn += "fdividef(";
         break;
       case node::type::fdim:
-        eqn += "fdim(";
+        eqn += "fdimf(";
         break;
       case node::type::max:
-        eqn += "max(";
+        eqn += "fmaxf(";
         break;
       case node::type::min:
-        eqn += "min(";
+        eqn += "fminf(";
         break;
       case node::type::mul:
         eqn += "mult(";
         break;
       case node::type::pow:
-        eqn += "pow(";
+        eqn += "powf(";
         break;
       case node::type::sub:
         eqn += "sub(";
         break;
       // unary operators
       case node::type::abs:
-        eqn += "abs(";
+        eqn += "fabsf(";
         break;
       case node::type::acos:
-        eqn += "acos(";
+        eqn += "acosf(";
         break;
       case node::type::acosh:
-        eqn += "acosh(";
+        eqn += "acoshf(";
         break;
       case node::type::asin:
-        eqn += "asin(";
+        eqn += "asinf(";
         break;
       case node::type::asinh:
-        eqn += "asinh(";
+        eqn += "asinhf(";
         break;
       case node::type::atan:
-        eqn += "atan(";
+        eqn += "atanf(";
         break;
       case node::type::atanh:
-        eqn += "atanh(";
+        eqn += "atanhf(";
         break;
       case node::type::cbrt:
-        eqn += "cbrt(";
+        eqn += "cbrtf(";
         break;
       case node::type::cos:
-        eqn += "cos(";
+        eqn += "cosf(";
         break;
       case node::type::cosh:
-        eqn += "cosh(";
+        eqn += "coshf(";
         break;
       case node::type::cube:
         eqn += "cube(";
         break;
       case node::type::exp:
-        eqn += "exp(";
+        eqn += "expf(";
         break;
       case node::type::inv:
         eqn += "inv(";
         break;
       case node::type::log:
-        eqn += "log(";
+        eqn += "logf(";
         break;
       case node::type::neg:
         eqn += "neg(";
         break;
       case node::type::rcbrt:
-        eqn += "rcbrt(";
+        eqn += "rcbrtf(";
         break;
       case node::type::rsqrt:
-        eqn += "rsqrt(";
+        eqn += "rsqrtf(";
         break;
       case node::type::sin:
-        eqn += "sin(";
+        eqn += "sinf(";
         break;
       case node::type::sinh:
-        eqn += "sinh(";
+        eqn += "sinhf(";
         break;
       case node::type::sq:
         eqn += "sq(";
         break;
       case node::type::sqrt:
-        eqn += "sqrt(";
+        eqn += "sqrtf(";
         break;
       case node::type::tan:
-        eqn += "tan(";
+        eqn += "tanf(";
         break;
       case node::type::tanh:
-        eqn += "tanh(";
+        eqn += "tanhf(";
         break;
       default:
         break;

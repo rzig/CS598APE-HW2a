@@ -4,6 +4,7 @@
 #include "node_detail.h"
 #include "philox_engine.h"
 #include "reg_stack.h"
+#include "jit_cuda.h"
 #include <algorithm>
 #include <cstdint>
 #include <fitness.h>
@@ -25,9 +26,35 @@ template <int MaxSize = MAX_STACK_SIZE>
 void execute_kernel(const program_t d_progs, const Dataset<float> &data,
                     float *y_pred, const uint64_t n_rows,
                     const uint64_t n_progs) {
+#ifdef CUDA_MODE
+auto compile_res = jit::cuda::jit_all(d_progs, 1);
+std::cout << "compiled batch" << std::endl;
+std::cout << stringify(d_progs[0]) << std::endl;
+#endif
 #pragma omp parallel for schedule(dynamic)
   for (uint64_t pid = 0; pid < n_progs; ++pid) {
     alignas(64) float res[Dataset<float>::batch_size_];
+#ifdef CUDA_MODE
+    if (pid == 0) {
+CUdeviceptr device_res;
+CHECK_CUDA(cuMemAlloc(&device_res, sizeof(float)*n_rows));
+int threadsPerBlock = 256;
+int blocksPerGrid = (n_rows + threadsPerBlock - 1) / threadsPerBlock;
+int row_width = 8;
+CUdeviceptr dd = data.device_data();
+int size = n_rows;
+void* args[] = {&dd, &device_res, &size, &row_width};
+auto fn = compile_res.second[0];
+        CHECK_CUDA(cuLaunchKernel(fn, 
+                          blocksPerGrid, 1, 1,    // grid dimensions
+                          threadsPerBlock, 1, 1,  // block dimensions
+                          0, NULL,                // shared memory size and stream
+                          args, 0));              // arguments and extra options
+      CHECK_CUDA(cuCtxSynchronize());
+      std::cout << "ran cuda for 1" << std::endl;
+      CHECK_CUDA(cuMemcpyDtoH(y_pred, device_res, sizeof(float)*n_rows));
+    }
+#endif
     BatchStack<float, MaxSize, Dataset<float>::batch_size_> stacks;
     for (size_t batch = 0; batch < data.num_batches(); batch++) {
       stacks.clear();
@@ -54,6 +81,17 @@ void execute_kernel(const program_t d_progs, const Dataset<float> &data,
       }
       auto re = stacks.peek();
       for (size_t i = 0; i < data.batch_size(); i++) {
+        if (pid == 0) {
+          if(y_pred[batch*data.batch_size() + i] != re[i]) {
+            std::cout << "y_pred: " << y_pred[batch*data.batch_size() + i] << " re " << re[i] << std::endl;
+            std::cout << "idx:" << batch*data.batch_size() + i << std::endl;
+            for (size_t j = 0; j < 8; j++) {
+              std::cout << "row[" << j << "]=" << data.column_of_batch(batch, j)[0] << std::endl;
+            }
+            exit(1);
+          }
+          continue;
+        }
         y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re[i];
       }
     }

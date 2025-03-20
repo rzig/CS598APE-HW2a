@@ -23,6 +23,7 @@
 #include "jit_cuda.h"
 #include "node.h"
 #include "program.h"
+#include "cuda_macros.h"
 // Utility functions
 namespace utils {
 
@@ -454,6 +455,14 @@ void run_symbolic_classification(const std::string &dataset_file) {}
 
 int main(int argc, char *argv[]) {
   try {
+    CHECK_CUDA(cuInit(0));
+    // Get a CUDA device
+    CUdevice device;
+    CHECK_CUDA(cuDeviceGet(&device, 0));
+    
+    // Create a CUDA context
+    CUcontext context;
+    CHECK_CUDA(cuCtxCreate(&context, 0, device));
     // Default datasets
     std::string regression_dataset = "benchmark/diabetes.csv";
     std::string classification_dataset = "benchmark/cancer.csv";
