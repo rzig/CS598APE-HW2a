@@ -190,10 +190,8 @@ void run_symbolic_regression(const std::string &dataset_file) {
   std::vector<float> y_test = y_split.second;
 
   // Flatten data for genetic library (column-major)
-  Dataset X_train_ds = Dataset(X_train, 4);
-  Dataset X_test_ds = Dataset(X_test, 4);
-  std::vector<float> X_train_flat = utils::flatten_column_major(X_train);
-  std::vector<float> X_test_flat = utils::flatten_column_major(X_test);
+  Dataset X_train_ds = Dataset(X_train);
+  Dataset X_test_ds = Dataset(X_test);
 
   // Create weights (all 1.0)
   std::vector<float> sample_weights(y_train.size(), 1.0f);

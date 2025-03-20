@@ -25,43 +25,53 @@ void execute_kernel(const program_t d_progs, const Dataset<float> &data,
                     float *y_pred, const uint64_t n_rows,
                     const uint64_t n_progs) {
   for (uint64_t pid = 0; pid < n_progs; ++pid) {
-    std::vector<float> lhs(data.batch_size());
     auto *res = new float[data.batch_size()];
-    std::vector<float> rhs(data.batch_size());
+    BatchStack<float, MaxSize, Dataset<float>::batch_size_> stacks;
     for (size_t batch = 0; batch < data.num_batches(); batch++) {
-      using stack_t = stack<float, MaxSize>;
-      std::vector<stack_t> stacks(data.batch_size());
+      stacks.clear();
       program_t curr_p = d_progs + pid;
       int end = curr_p->len - 1;
       node *curr_node = curr_p->nodes + end;
+      float *lhs = nullptr;
+      float *rhs = nullptr;
 
       while (end >= 0) {
         if (detail::is_nonterminal(curr_node->t)) {
           int ar = detail::arity(curr_node->t);
-          for (size_t i = 0; i < data.batch_size(); i++) {
-            auto nv = stacks[i].pop();
-            lhs[i] = nv;
-          }
+          lhs = stacks.peek();
+          stacks.pop();
           if (ar > 1) {
-            for (size_t i = 0; i < data.batch_size(); i++) {
-              auto nv = stacks[i].pop();
-              rhs[i] = nv;
-            }
+            rhs = stacks.peek();
+            stacks.pop();
           }
+          // for (size_t i = 0; i < data.batch_size(); i++) {
+          //   auto nv = stacks[i].pop();
+          //   lhs[i] = nv;
+          // }
+          // if (ar > 1) {
+          //   for (size_t i = 0; i < data.batch_size(); i++) {
+          //     auto nv = stacks[i].pop();
+          //     rhs[i] = nv;
+          //   }
+          // }
         }
-        detail::evaluate_node_batched(*curr_node, data, batch, lhs.data(),
-                                      rhs.data(), res);
-        for (size_t i = 0; i < data.batch_size(); i++) {
-          stacks[i].push(res[i]);
-        }
+        detail::evaluate_node_batched(*curr_node, data, batch, lhs, rhs, res);
+        stacks.push(res);
+        // for (size_t i = 0; i < data.batch_size(); i++) {
+        //   stacks[i].push(res[i]);
+        // }
         curr_node--;
         end--;
       }
-      // still write y_pred in column major for now
+      auto re = stacks.peek();
       for (size_t i = 0; i < data.batch_size(); i++) {
-        auto re = stacks[i].pop();
-        y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re;
+        y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re[i];
       }
+      // still write y_pred in column major for now
+      // for (size_t i = 0; i < data.batch_size(); i++) {
+      //   auto re = stacks.peek();
+      //   y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re;
+      // }
     }
     free(res);
   }

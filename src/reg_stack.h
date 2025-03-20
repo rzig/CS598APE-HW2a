@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 namespace genetic {
 /**
  * @brief A fixed capacity stack on device currently used for AST evaluation
@@ -61,3 +62,43 @@ private:
   DataT regs_[MaxSize];
 }; // struct stack
 } // namespace genetic
+
+template <typename DataT, size_t MaxSize, size_t BatchSize> class BatchStack {
+public:
+  BatchStack() {
+    for (size_t i = 0; i < MaxSize; i++) {
+      for (size_t j = 0; j < BatchSize; j++) {
+        regs_[i][j] = DataT(0);
+      }
+    }
+    elements_ = 0;
+  }
+
+  void clear() noexcept {
+    for (size_t i = 0; i < MaxSize; i++) {
+      for (size_t j = 0; j < BatchSize; j++) {
+        regs_[i][j] = DataT(0);
+      }
+    }
+    elements_ = 0;
+  }
+
+  DataT *peek() { return regs_[elements_ - 1]; }
+
+  void pop() { elements_--; }
+
+  void push(DataT *data) {
+    for (size_t i = 0; i < BatchSize; i++) {
+      regs_[elements_][i] = data[i];
+    }
+    elements_++;
+  }
+
+private:
+  int elements_;
+  alignas(
+      64) DataT regs_[MaxSize][BatchSize]; // store in this layout so that
+                                           // regs[i] contains a full batch
+                                           // use alignas(64) for 512 bit simd
+                                           // BatchSize should be the SIMD width
+};
