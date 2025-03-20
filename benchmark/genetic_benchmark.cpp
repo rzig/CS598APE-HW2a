@@ -20,9 +20,9 @@
 #include "data.h"
 #include "fitness.h"
 #include "genetic.h"
+#include "jit_cuda.h"
 #include "node.h"
 #include "program.h"
-
 // Utility functions
 namespace utils {
 
@@ -293,6 +293,9 @@ void run_symbolic_regression(const std::string &dataset_file) {
     // Convert to string representation
     std::string program_str2 = genetic::stringify(*best_program2);
     std::cout << "- Program: " << program_str2 << std::endl;
+
+    std::cout << "CUDA:" << std::endl;
+    std::cout << jit::cuda::generate_program_kernel(*best_program1, 0);
   }
 
   // Stop end-to-end timer and print results

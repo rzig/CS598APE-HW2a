@@ -11,6 +11,7 @@
 #include <philox_engine.h>
 #include <program.h>
 #include <random>
+#include <sstream>
 #include <stack>
 namespace genetic {
 
@@ -225,8 +226,9 @@ std::string stringify(const program &prog) {
       eqn += delim;
       if (prog.nodes[i].t == node::type::variable) {
         // variable
-        eqn += "X";
+        eqn += "row[";
         eqn += std::to_string(prog.nodes[i].u.fid);
+        eqn += "]";
       } else {
         // const
         eqn += std::to_string(prog.nodes[i].u.val);
