@@ -322,7 +322,7 @@ std::string stringify(const program &prog) {
         eqn += "inv(";
         break;
       case node::type::log:
-        eqn += "logf(";
+        eqn += "custom_log(";
         break;
       case node::type::neg:
         eqn += "neg(";
@@ -331,7 +331,7 @@ std::string stringify(const program &prog) {
         eqn += "rcbrtf(";
         break;
       case node::type::rsqrt:
-        eqn += "rsqrtf(";
+        eqn += "custom_rsqrt(";
         break;
       case node::type::sin:
         eqn += "sinf(";
@@ -343,7 +343,7 @@ std::string stringify(const program &prog) {
         eqn += "sq(";
         break;
       case node::type::sqrt:
-        eqn += "sqrtf(";
+        eqn += "custom_sqrt(";
         break;
       case node::type::tan:
         eqn += "tanf(";

@@ -26,7 +26,8 @@ __device__ __forceinline__ float add(float a, float b) {
 }
 
 __device__ __forceinline__ float div(float a, float b) {
-    return a / b;
+    float abs_rhs = fabsf(b);
+    return abs_rhs < 0.001f ? 1.0f : (a/b);
 }
 
 __device__ __forceinline__ float mult(float a, float b) {
@@ -43,21 +44,35 @@ __device__ __forceinline__ float cube(float x) {
 }
 
 __device__ __forceinline__ float inv(float x) {
-    return 1.0f / x;
+    float abs_val = fabsf(x);
+    return abs_val < 0.001f ? 0.f : 1.f / x;
 }
 
 __device__ __forceinline__ float neg(float x) {
     return -x;
 }
 
-__device__ __forceinline__ float rsqrt(float x) {
+__device__ __forceinline__ float custom_rsqrt(float x) {
     // CUDA has a built-in fast reciprocal square root
-    return rsqrtf(x);
+    float abs_val = fabsf(x);
+    return rsqrtf(abs_val);
 }
 
 __device__ __forceinline__ float sq(float x) {
     return x * x;
 }
+
+__device__ __forceinline__ float custom_log(float x) {
+  float abs_val = fabsf(x);
+  return abs_val < 0.001f ? 0.f : logf(abs_val);
+}
+
+__device__ __forceinline__ float custom_sqrt(float x) {
+  float abs_val = fabsf(x);
+  return sqrtf(abs_val);
+}
+
+
 )";
 
 std::string generate_full_cuda_src(const genetic::program_t dprogs, const size_t nprogs) {
@@ -98,6 +113,7 @@ CUmodule compile_cuda_src(const std::string& src) {
 std::pair<CUmodule, std::vector<CUfunction>> jit_all(const genetic::program_t d_progs, const size_t n_progs) {
   auto all_cuda = jit::cuda::generate_full_cuda_src(d_progs, n_progs);
   CUmodule module = jit::cuda::compile_cuda_src(all_cuda);
+  std::cout << all_cuda << std::endl;
   std::vector<CUfunction> res;
   for (size_t i = 0; i < n_progs; i++) {
     CUfunction k;

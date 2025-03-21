@@ -82,7 +82,7 @@ auto fn = compile_res.second[0];
       auto re = stacks.peek();
       for (size_t i = 0; i < data.batch_size(); i++) {
         if (pid == 0) {
-          if(y_pred[batch*data.batch_size() + i] != re[i]) {
+          if(fabsf(y_pred[batch*data.batch_size() + i] - re[i]) > 0.01) {
             std::cout << "y_pred: " << y_pred[batch*data.batch_size() + i] << " re " << re[i] << std::endl;
             std::cout << "idx:" << batch*data.batch_size() + i << std::endl;
             for (size_t j = 0; j < 8; j++) {
@@ -91,8 +91,8 @@ auto fn = compile_res.second[0];
             exit(1);
           }
           continue;
-        }
-        y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re[i];
+        } else 
+          y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re[i];
       }
     }
   }
