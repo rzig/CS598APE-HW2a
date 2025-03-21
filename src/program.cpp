@@ -28,9 +28,40 @@ void execute_kernel(const program_t d_progs, const Dataset<float> &data,
                     const uint64_t n_progs) {
 #ifdef CUDA_MODE
 auto compile_res = jit::cuda::jit_all(d_progs, 1);
-std::cout << "compiled batch" << std::endl;
-std::cout << stringify(d_progs[0]) << std::endl;
 #endif
+#ifdef CUDA_MODE
+CUdeviceptr device_res;
+CHECK_CUDA(cuMemAlloc(&device_res, sizeof(float)*n_rows));
+int threadsPerBlock = 256;
+int blocksPerGrid = (n_rows + threadsPerBlock - 1) / threadsPerBlock;
+int row_width = 8;
+int size = n_rows;
+CUdeviceptr dd = data.device_data();
+void* args[] = {&dd, &device_res, &size, &row_width};
+std::vector<CUfunction> jited(n_progs);
+jited[0] = jit::cuda::jit_single(d_progs[0]).second;
+for (uint64_t pid = 0; pid < n_progs; ++pid) {
+  // auto res = jit::cuda::jit_single(d_progs[pid]);
+  // auto fn = res.second;
+  auto fn = jited[pid];
+  std::cout << "starting " << pid << std::endl;
+  CHECK_CUDA(cuLaunchKernel(
+    fn,
+    blocksPerGrid, 1, 1,
+    threadsPerBlock, 1, 1,
+    0, NULL,
+    args, 0
+  ));
+      // std::cout << "launched " << pid << std::endl;
+  if (pid < n_progs - 1) {
+    jited[pid+1] = jit::cuda::jit_single(d_progs[pid+1]).second;
+  }
+  CHECK_CUDA(cuCtxSynchronize());
+  std::cout << "done " << pid << std::endl;
+  CHECK_CUDA(cuMemcpyDtoH(y_pred, device_res, sizeof(float)*n_rows));
+}
+#endif
+#ifndef CUDA_MODE
 #pragma omp parallel for schedule(dynamic)
   for (uint64_t pid = 0; pid < n_progs; ++pid) {
     alignas(64) float res[Dataset<float>::batch_size_];
@@ -96,6 +127,7 @@ auto fn = compile_res.second[0];
       }
     }
   }
+#endif
 }
 
 program::program()

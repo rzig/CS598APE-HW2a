@@ -23,5 +23,8 @@ std::string generate_program_kernel(const genetic::program &program, size_t i);
 std::string generate_full_cuda_src(const genetic::program_t dprogs, size_t nprogs);
 CUmodule compile_cuda_src(const std::string& src);
 std::pair<CUmodule, std::vector<CUfunction>> jit_all(const genetic::program_t dprogs, size_t n_progs);
+std::pair<CUmodule, CUfunction> jit_single(const genetic::program& prog);
+std::string generate_single_cuda_src(const genetic::program& prog);
+
 } // namespace cuda
 } // namespace jit

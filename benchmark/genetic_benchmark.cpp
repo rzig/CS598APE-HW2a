@@ -467,6 +467,7 @@ int main(int argc, char *argv[]) {
     std::string regression_dataset = "benchmark/diabetes.csv";
     std::string classification_dataset = "benchmark/cancer.csv";
     std::string housing_dataset = "benchmark/housing.csv";
+    std::string large_dataset = "function_data_1gb";
 
     std::string arg_dset(argv[1]);
 
@@ -476,6 +477,8 @@ int main(int argc, char *argv[]) {
       run_symbolic_classification(classification_dataset);
     } else if (arg_dset == "housing") {
       run_symbolic_regression(housing_dataset);
+    } else if (arg_dset == "big") {
+      run_symbolic_regression(large_dataset);
     }
 
     return 0;

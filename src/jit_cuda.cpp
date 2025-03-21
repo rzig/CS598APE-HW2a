@@ -83,6 +83,12 @@ std::string generate_full_cuda_src(const genetic::program_t dprogs, const size_t
   }         
   return cuda_kernel.str();
 }
+std::string generate_single_cuda_src(const genetic::program& prog) {
+  std::stringstream cuda_kernel;
+  cuda_kernel << kernel_prelude;
+  cuda_kernel << generate_program_kernel(prog, 0);
+  return cuda_kernel.str();
+}
 
 CUmodule compile_cuda_src(const std::string& src) {
   nvrtcProgram prog;
@@ -110,10 +116,17 @@ CUmodule compile_cuda_src(const std::string& src) {
   return module;
 }
 
+std::pair<CUmodule, CUfunction> jit_single(const genetic::program& prog) {
+  auto all_cuda = jit::cuda::generate_single_cuda_src(prog);
+  CUmodule module = jit::cuda::compile_cuda_src(all_cuda);
+  CUfunction func;
+  CHECK_CUDA(cuModuleGetFunction(&func, module, "k0"));
+  return std::make_pair(module, func);
+}
+
 std::pair<CUmodule, std::vector<CUfunction>> jit_all(const genetic::program_t d_progs, const size_t n_progs) {
   auto all_cuda = jit::cuda::generate_full_cuda_src(d_progs, n_progs);
   CUmodule module = jit::cuda::compile_cuda_src(all_cuda);
-  std::cout << all_cuda << std::endl;
   std::vector<CUfunction> res;
   for (size_t i = 0; i < n_progs; i++) {
     CUfunction k;
