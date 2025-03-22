@@ -56,6 +56,38 @@ The behaviour of the training run can be tuned through the `param` struct, which
 
 As we run the program, we see the time taken for a end to end run of symbolic regression. We have placed a timer around both the sybolic regression driver code as well as the code for binary classification. Similar to HW1, your goal is to reduce this runtime as much as possible, while maintining/increasing complexity. 
 
+## Setup instructions
+To evaluate our work, please follow these instructions (skip GPU steps if not evaluating on GPU). These assume you're on Ubuntu.
+
+On Ubuntu:
+1. Install clang and llvm 18:
+```
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add
+UBUNTU_CODENAME=$(lsb_release -cs)
+sudo bash -c "echo 'deb http://apt.llvm.org/$UBUNTU_CODENAME/ llvm-toolchain-$UBUNTU_CODENAME-18 main' > /etc/apt/sources.list.d/llvm-18.list"
+sudo apt install llvm-18 clang-18 lldb-18 lld-18 clangd-18
+sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
+sudo update-alternatives --set clang++ /usr/bin/clang++-18
+sudo apt install libstdc++-12-dev
+```
+2. Install CUDA tookit:
+```
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get install cuda-toolkit
+sudo reboot
+```
+3. Add to bashrc: `export PATH=/usr/local/cuda-12.8/bin${PATH:+:${PATH}}`
+4. Install openmp: `sudo apt install libomp-dev && sudo apt install libomp-18-dev`
+5. Install 570 drivers:
+```
+sudo apt remove libnvidia-common-550 nvidia-kernel-common-550 nvidia-driver-550
+sudo apt-get install nvidia-driver-570
+sudo reboot
+```
+   
+
 ## Input Datasets
 This project contains three input datasets for you to optimize. All 3 are standard scikit-learn datasets. 
 
