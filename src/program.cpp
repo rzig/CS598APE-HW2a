@@ -15,6 +15,7 @@
 #include <program.h>
 #include <random>
 #include <stack>
+#include <chrono>
 #include "types.h"
 
 namespace genetic {
@@ -27,6 +28,11 @@ template <int MaxSize = MAX_STACK_SIZE>
 void execute_kernel(const program_t d_progs, const Dataset<float> &data,
                     ypred_t y_pred, const uint64_t n_rows,
                     const uint64_t n_progs) {
+  std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now().time_since_epoch())
+                   .count()
+            << std::endl;
+
 #ifndef CUDA_MODE
 #pragma omp parallel for schedule(dynamic)
 #endif
@@ -42,7 +48,6 @@ int row_width = 8;
 CUdeviceptr dd = data.device_data();
 int size = n_rows;
 void* args[] = {&dd, &y_pred, &size, &row_width, &pid};
-std::cout << pid << std::endl;
 auto compile_res = jit::cuda::jit_single(d_progs[pid]);
 outs[pid_c - pid] = compile_res;
 auto fn = compile_res.second;
@@ -53,7 +58,6 @@ auto fn = compile_res.second;
                           args, 0));              // arguments and extra options
 }
   CHECK_CUDA(cuCtxSynchronize());
-  std::cout << "done w batch" << std::endl;
 if (pid_c + batch_size < n_progs) {
 for (size_t i = 0; i < batch_size; i++) {
   cuModuleUnload(outs[i].first);
@@ -109,7 +113,11 @@ pid_c += batch_size;
   #ifdef CUDA_MODE
   CHECK_CUDA(cuCtxSynchronize());
   #endif
-  
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now().time_since_epoch())
+                   .count()
+            << std::endl;
+
 }
 
 program::program()
@@ -143,24 +151,24 @@ program &program::operator=(const program &src) {
 void compute_metric(int n_rows, int n_progs, const float *y,
                     const ypred_t y_pred, const float *w, float *score,
                     const param &params) {
-  // exit(1);
-  // return;
+  exit(1);
+  return;
   // Call appropriate metric function based on metric defined in params
-  if (params.metric == metric_t::pearson) {
-    weightedPearson(n_rows, n_progs, y, y_pred, w, score);
-  } else if (params.metric == metric_t::spearman) {
-    weightedSpearman(n_rows, n_progs, y, y_pred, w, score);
-  } else if (params.metric == metric_t::mae) {
-    meanAbsoluteError(n_rows, n_progs, y, y_pred, w, score);
-  } else if (params.metric == metric_t::mse) {
-    meanSquareError(n_rows, n_progs, y, y_pred, w, score);
-  } else if (params.metric == metric_t::rmse) {
-    rootMeanSquareError(n_rows, n_progs, y, y_pred, w, score);
-  } else if (params.metric == metric_t::logloss) {
-    logLoss(n_rows, n_progs, y, y_pred, w, score);
-  } else {
-    // This should not be reachable
-  }
+  // if (params.metric == metric_t::pearson) {
+  //   weightedPearson(n_rows, n_progs, y, y_pred, w, score);
+  // } else if (params.metric == metric_t::spearman) {
+  //   weightedSpearman(n_rows, n_progs, y, y_pred, w, score);
+  // } else if (params.metric == metric_t::mae) {
+  //   meanAbsoluteError(n_rows, n_progs, y, y_pred, w, score);
+  // } else if (params.metric == metric_t::mse) {
+  //   meanSquareError(n_rows, n_progs, y, y_pred, w, score);
+  // } else if (params.metric == metric_t::rmse) {
+  //   rootMeanSquareError(n_rows, n_progs, y, y_pred, w, score);
+  // } else if (params.metric == metric_t::logloss) {
+  //   logLoss(n_rows, n_progs, y, y_pred, w, score);
+  // } else {
+  //   // This should not be reachable
+  // }
 }
 
 void execute(const program_t &d_progs, const int n_rows, const int n_progs,

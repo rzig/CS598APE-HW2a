@@ -203,7 +203,7 @@ void run_symbolic_regression(const std::string &dataset_file) {
 
   // Set parameters
   genetic::param params;
-  params.population_size = 64;
+  params.population_size = 512;
   params.generations = 16;
   params.tournament_size = 4;
   params.init_depth[0] = 2;
