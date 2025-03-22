@@ -24,6 +24,7 @@
 #include "node.h"
 #include "program.h"
 #include "cuda_macros.h"
+#include "types.h"
 // Utility functions
 namespace utils {
 
@@ -202,7 +203,7 @@ void run_symbolic_regression(const std::string &dataset_file) {
 
   // Set parameters
   genetic::param params;
-  params.population_size = 512;
+  params.population_size = 64;
   params.generations = 16;
   params.tournament_size = 4;
   params.init_depth[0] = 2;
@@ -267,37 +268,39 @@ void run_symbolic_regression(const std::string &dataset_file) {
   genetic::symRegPredict(X_test_ds, X_test.size(), &final_programs[1],
                          y_pred2.data());
 
+  std::cout << "done with all" << std::endl;
   // Calculate MSE on test set
-  float mse = utils::mean_squared_error(y_test, y_pred1);
-  float mse2 = utils::mean_squared_error(y_test, y_pred2);
+  // float mse = utils::mean_squared_error(y_test, y_pred1);
+  // float mse2 = utils::mean_squared_error(y_test, y_pred2);
+  return;
 
   // Extract the best programs and print some stats
-  if (history.back().size() > 0) {
-    genetic::program_t best_program1 = &final_programs[0];
-    std::cout << "Best program 1 details:" << std::endl;
-    std::cout << "- Length: " << best_program1->len << " nodes" << std::endl;
-    std::cout << "- Depth: " << best_program1->depth << std::endl;
-    std::cout << "- Raw fitness: " << best_program1->raw_fitness_ << std::endl;
-    std::cout << "- Test MSE: " << mse << std::endl;
+  // if (history.back().size() > 0) {
+  //   genetic::program_t best_program1 = &final_programs[0];
+  //   std::cout << "Best program 1 details:" << std::endl;
+  //   std::cout << "- Length: " << best_program1->len << " nodes" << std::endl;
+  //   std::cout << "- Depth: " << best_program1->depth << std::endl;
+  //   std::cout << "- Raw fitness: " << best_program1->raw_fitness_ << std::endl;
+  //   std::cout << "- Test MSE: " << mse << std::endl;
 
-    // Convert to string representation
-    std::string program_str = genetic::stringify(*best_program1);
-    std::cout << "- Program: " << program_str << std::endl;
+  //   // Convert to string representation
+  //   std::string program_str = genetic::stringify(*best_program1);
+  //   std::cout << "- Program: " << program_str << std::endl;
 
-    genetic::program_t best_program2 = &final_programs[1];
-    std::cout << "Best program 2 details:" << std::endl;
-    std::cout << "- Length: " << best_program2->len << " nodes" << std::endl;
-    std::cout << "- Depth: " << best_program2->depth << std::endl;
-    std::cout << "- Raw fitness: " << best_program2->raw_fitness_ << std::endl;
-    std::cout << "- Test MSE: " << mse2 << std::endl;
+  //   genetic::program_t best_program2 = &final_programs[1];
+  //   std::cout << "Best program 2 details:" << std::endl;
+  //   std::cout << "- Length: " << best_program2->len << " nodes" << std::endl;
+  //   std::cout << "- Depth: " << best_program2->depth << std::endl;
+  //   std::cout << "- Raw fitness: " << best_program2->raw_fitness_ << std::endl;
+  //   std::cout << "- Test MSE: " << mse2 << std::endl;
 
-    // Convert to string representation
-    std::string program_str2 = genetic::stringify(*best_program2);
-    std::cout << "- Program: " << program_str2 << std::endl;
+  //   // Convert to string representation
+  //   std::string program_str2 = genetic::stringify(*best_program2);
+  //   std::cout << "- Program: " << program_str2 << std::endl;
 
-    std::cout << "CUDA:" << std::endl;
-    std::cout << jit::cuda::generate_program_kernel(*best_program1, 0);
-  }
+  //   std::cout << "CUDA:" << std::endl;
+  //   std::cout << jit::cuda::generate_program_kernel(*best_program1, 0);
+  // }
 
   // Stop end-to-end timer and print results
   ctimer_stop(&end_to_end_timer);

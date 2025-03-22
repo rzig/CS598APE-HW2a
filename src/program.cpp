@@ -15,6 +15,7 @@
 #include <program.h>
 #include <random>
 #include <stack>
+#include "types.h"
 
 namespace genetic {
 std::string stringify(const program &);
@@ -24,68 +25,45 @@ std::string stringify(const program &);
  */
 template <int MaxSize = MAX_STACK_SIZE>
 void execute_kernel(const program_t d_progs, const Dataset<float> &data,
-                    float *y_pred, const uint64_t n_rows,
+                    ypred_t y_pred, const uint64_t n_rows,
                     const uint64_t n_progs) {
-#ifdef CUDA_MODE
-auto compile_res = jit::cuda::jit_all(d_progs, 1);
-#endif
-#ifdef CUDA_MODE
-CUdeviceptr device_res;
-CHECK_CUDA(cuMemAlloc(&device_res, sizeof(float)*n_rows));
-int threadsPerBlock = 256;
-int blocksPerGrid = (n_rows + threadsPerBlock - 1) / threadsPerBlock;
-int row_width = 8;
-int size = n_rows;
-CUdeviceptr dd = data.device_data();
-void* args[] = {&dd, &device_res, &size, &row_width};
-std::vector<CUfunction> jited(n_progs);
-jited[0] = jit::cuda::jit_single(d_progs[0]).second;
-for (uint64_t pid = 0; pid < n_progs; ++pid) {
-  // auto res = jit::cuda::jit_single(d_progs[pid]);
-  // auto fn = res.second;
-  auto fn = jited[pid];
-  std::cout << "starting " << pid << std::endl;
-  CHECK_CUDA(cuLaunchKernel(
-    fn,
-    blocksPerGrid, 1, 1,
-    threadsPerBlock, 1, 1,
-    0, NULL,
-    args, 0
-  ));
-      // std::cout << "launched " << pid << std::endl;
-  if (pid < n_progs - 1) {
-    jited[pid+1] = jit::cuda::jit_single(d_progs[pid+1]).second;
-  }
-  CHECK_CUDA(cuCtxSynchronize());
-  std::cout << "done " << pid << std::endl;
-  CHECK_CUDA(cuMemcpyDtoH(y_pred, device_res, sizeof(float)*n_rows));
-}
-#endif
 #ifndef CUDA_MODE
 #pragma omp parallel for schedule(dynamic)
-  for (uint64_t pid = 0; pid < n_progs; ++pid) {
-    alignas(64) float res[Dataset<float>::batch_size_];
+#endif
 #ifdef CUDA_MODE
-    if (pid == 0) {
-CUdeviceptr device_res;
-CHECK_CUDA(cuMemAlloc(&device_res, sizeof(float)*n_rows));
+int pid_c = 0;
+size_t batch_size = 2;
+static std::vector<std::pair<CUmodule, CUfunction>> outs(2);
+while (pid_c < n_progs) {
+  for(int pid = pid_c; pid < pid_c + batch_size && pid < n_progs; pid++) {
 int threadsPerBlock = 256;
 int blocksPerGrid = (n_rows + threadsPerBlock - 1) / threadsPerBlock;
 int row_width = 8;
 CUdeviceptr dd = data.device_data();
 int size = n_rows;
-void* args[] = {&dd, &device_res, &size, &row_width};
-auto fn = compile_res.second[0];
+void* args[] = {&dd, &y_pred, &size, &row_width, &pid};
+std::cout << pid << std::endl;
+auto compile_res = jit::cuda::jit_single(d_progs[pid]);
+outs[pid_c - pid] = compile_res;
+auto fn = compile_res.second;
         CHECK_CUDA(cuLaunchKernel(fn, 
                           blocksPerGrid, 1, 1,    // grid dimensions
                           threadsPerBlock, 1, 1,  // block dimensions
                           0, NULL,                // shared memory size and stream
                           args, 0));              // arguments and extra options
-      CHECK_CUDA(cuCtxSynchronize());
-      std::cout << "ran cuda for 1" << std::endl;
-      CHECK_CUDA(cuMemcpyDtoH(y_pred, device_res, sizeof(float)*n_rows));
-    }
-#endif
+}
+  CHECK_CUDA(cuCtxSynchronize());
+  std::cout << "done w batch" << std::endl;
+if (pid_c + batch_size < n_progs) {
+for (size_t i = 0; i < batch_size; i++) {
+  cuModuleUnload(outs[i].first);
+} 
+}
+pid_c += batch_size;
+      // CHECK_CUDA(cuMemcpyDtoH(y_pred, device_res, sizeof(float)*n_rows));
+#else
+  for (int pid = 0; pid < n_progs; ++pid) {
+    alignas(64) float res[Dataset<float>::batch_size_];
     BatchStack<float, MaxSize, Dataset<float>::batch_size_> stacks;
     for (size_t batch = 0; batch < data.num_batches(); batch++) {
       stacks.clear();
@@ -126,8 +104,12 @@ auto fn = compile_res.second[0];
           y_pred[pid * n_rows + (batch * data.batch_size() + i)] = re[i];
       }
     }
+    #endif
   }
-#endif
+  #ifdef CUDA_MODE
+  CHECK_CUDA(cuCtxSynchronize());
+  #endif
+  
 }
 
 program::program()
@@ -159,8 +141,10 @@ program &program::operator=(const program &src) {
 }
 
 void compute_metric(int n_rows, int n_progs, const float *y,
-                    const float *y_pred, const float *w, float *score,
+                    const ypred_t y_pred, const float *w, float *score,
                     const param &params) {
+  // exit(1);
+  // return;
   // Call appropriate metric function based on metric defined in params
   if (params.metric == metric_t::pearson) {
     weightedPearson(n_rows, n_progs, y, y_pred, w, score);
@@ -180,21 +164,32 @@ void compute_metric(int n_rows, int n_progs, const float *y,
 }
 
 void execute(const program_t &d_progs, const int n_rows, const int n_progs,
-             const Dataset<float> &data, float *y_pred) {
+             const Dataset<float> &data, ypred_t y_pred) {
   execute_kernel(d_progs, data, y_pred, static_cast<uint64_t>(n_rows),
                  static_cast<uint64_t>(n_progs));
+  std::cout << "done w here" << std::endl;
 }
 
 void find_fitness(program_t d_prog, float *score, const param &params,
                   const int n_rows, const Dataset<float> &data, const float *y,
                   const float *sample_weights) {
 
-  // Compute predicted values
   std::vector<float> y_pred(n_rows);
+  // Compute predicted values
+  #ifdef CUDA_MODE
+  CUdeviceptr d_output;
+  CHECK_CUDA(cuMemAlloc(&d_output, n_rows*2*sizeof(float)));
+  execute(d_prog, n_rows, 1, data, d_output);
+  #else
   execute(d_prog, n_rows, 1, data, y_pred.data());
-
+  #endif
+std::cout << "done with ex" << std::endl;
   // Compute error
+  #ifdef CUDA_MODE
+  compute_metric(n_rows, 1, y, d_output, sample_weights, score, params);
+  #else
   compute_metric(n_rows, 1, y, y_pred.data(), sample_weights, score, params);
+  #endif
 }
 
 void find_batched_fitness(int n_progs, program_t d_progs, float *score,
@@ -203,11 +198,22 @@ void find_batched_fitness(int n_progs, program_t d_progs, float *score,
                           const float *sample_weights) {
 
   std::vector<float> y_pred((uint64_t)n_rows * (uint64_t)n_progs);
+  #ifdef CUDA_MODE
+  CUdeviceptr d_output;
+  CHECK_CUDA(cuMemAlloc(&d_output, n_rows*n_progs*sizeof(float)));
+  execute(d_progs, n_rows, n_progs, data, d_output);
+  #else
   execute(d_progs, n_rows, n_progs, data, y_pred.data());
-
+  #endif
+std::cout << "here in find batched" << std::endl;
+  #ifdef CUDA_MODE
   // Compute error
+  compute_metric(n_rows, n_progs, y, d_output, sample_weights, score,
+                 params);
+  #else
   compute_metric(n_rows, n_progs, y, y_pred.data(), sample_weights, score,
                  params);
+  #endif
 }
 
 void set_fitness(program &h_prog, const param &params, const int n_rows,

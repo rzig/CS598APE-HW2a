@@ -7,13 +7,13 @@ std::string generate_program_kernel(const genetic::program &program, size_t i) {
   std::stringstream cuda_code;
 
   cuda_code << "extern \"C\" __global__ void k" << i
-            << "(float* inp, float* outp, int num_rows, int row_width) {"
+            << "(float* inp, float* outp, int num_rows, int row_width, int pid) {"
             << std::endl;
   cuda_code << "int row_idx = blockIdx.x * blockDim.x + threadIdx.x;"
             << std::endl;
   cuda_code << "if (row_idx < num_rows) {" << std::endl;
   cuda_code << "float* row = &inp[row_idx*row_width];" << std::endl;
-  cuda_code << "outp[row_idx] = " << string_repr << ";" << std::endl;
+  cuda_code << "outp[pid*num_rows + row_idx] = " << string_repr << ";" << std::endl;
   cuda_code << "}" << std::endl; // end if
   cuda_code << "}" << std::endl; // end kernel
 
@@ -94,7 +94,7 @@ CUmodule compile_cuda_src(const std::string& src) {
   nvrtcProgram prog;
   CHECK_NVRTC(nvrtcCreateProgram(&prog, src.c_str(), "kernel.cu", 0, nullptr, nullptr)); // filename doesn't matter
   // https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
-  const char* options[] = {"--gpu-architecture=sm_80"};
+  const char* options[] = {"--gpu-architecture=compute_52"};
   nvrtcResult compileResult = nvrtcCompileProgram(prog, 1, options);
       if (compileResult != NVRTC_SUCCESS) {
         // Get compilation log
@@ -110,9 +110,13 @@ CUmodule compile_cuda_src(const std::string& src) {
   CHECK_NVRTC(nvrtcGetPTXSize(prog, &ptxSize));
   char* ptx = new char[ptxSize];
   CHECK_NVRTC(nvrtcGetPTX(prog, ptx));
-
+  // std::cout << src << std::endl;
   CUmodule module;
+  // std::cout << ptx << std::endl;
   CHECK_CUDA(cuModuleLoadData(&module, ptx));
+
+  nvrtcDestroyProgram(&prog);
+  
   return module;
 }
 

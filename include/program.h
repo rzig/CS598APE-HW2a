@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "philox_engine.h"
+#include "types.h"
 #include <random>
 
 namespace genetic {
@@ -75,7 +76,7 @@ typedef program *program_t;
  * @param y_pred     Pointer to output of program evaluation
  */
 void execute(const program_t &d_progs, const int n_rows, const int n_progs,
-             const Dataset<float> &data, float *y_pred);
+             const Dataset<float> &data, ypred_t y_pred);
 
 /**
  * @brief Compute the loss based on the metric specified in the training
@@ -92,7 +93,7 @@ void execute(const program_t &d_progs, const int n_rows, const int n_progs,
  * @param params    Training hyperparameters
  */
 void compute_metric(int n_rows, int n_progs, const float *y,
-                    const float *y_pred, const float *w, float *score,
+                    const ypred_t y_pred, const float *w, float *score,
                     const param &params);
 
 /**

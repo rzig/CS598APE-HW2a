@@ -12,10 +12,12 @@
 #include "data.h"
 #include "fitness.h"
 #include "genetic.h"
-#include "jit_cuda.h"
 #include "node.h"
 #include "program.h"
 #include <sstream>
+#include <nvrtc.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 namespace jit {
 namespace cuda {

@@ -471,15 +471,30 @@ void symFit(const Dataset<float> &input, const float *labels,
 void symRegPredict(const Dataset<float> &input, const int n_rows,
                    const program_t &best_prog, float *output) {
   // Assume best_prog is on device
+  #ifdef CUDA_MODE
+  CUdeviceptr d_output;
+  CHECK_CUDA(cuMemAlloc(&d_output, n_rows*2*sizeof(float)));
+  execute(best_prog, n_rows, 1, input, d_output);
+  CHECK_CUDA(cuMemcpyDtoH(output, d_output, n_rows*sizeof(float)*2));
+  #else
   execute(best_prog, n_rows, 1, input, output);
+  #endif
 }
 
 void symClfPredictProbs(const Dataset<float> &input, const int n_rows,
                         const param &params, const program_t &best_prog,
                         float *output) {
 
-  // Assume output is of shape [n_rows, 2] in colMajor format
+  #ifdef CUDA_MODE
+  CUdeviceptr d_output;
+  CHECK_CUDA(cuMemAlloc(&d_output, n_rows*2*sizeof(float)));
+  execute(best_prog, n_rows, 1, input, d_output);
+  CHECK_CUDA(cuMemcpyDtoH(output, d_output, n_rows*sizeof(float)*2));
+  #else
   execute(best_prog, n_rows, 1, input, output);
+  #endif
+
+  // Assume output is of shape [n_rows, 2] in colMajor format
 
   // Apply 2 map operations
   if (params.transformer == transformer_t::sigmoid) {
@@ -516,7 +531,14 @@ void symTransform(const Dataset<float> &input, const param &params,
   // cudaStream_t stream = handle.get_stream();
   // Execute final_progs(ordered by fitness) on input
   // output of size [n_rows,hall_of_fame]
+  #ifdef CUDA_MODE
+  CUdeviceptr d_output;
+  CHECK_CUDA(cuMemAlloc(&d_output, n_rows*2*sizeof(float)));
+  execute(final_progs, n_rows, params.n_components, input, d_output);
+  CHECK_CUDA(cuMemcpyDtoH(output, d_output, n_rows*sizeof(float)*2));
+  #else
   execute(final_progs, n_rows, params.n_components, input, output);
+  #endif
 }
 
 } // namespace genetic

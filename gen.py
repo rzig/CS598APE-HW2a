@@ -80,4 +80,4 @@ def generate_large_function_csv(filename, target_size_gb=1, batch_size=10000):
 
 # Example usage
 if __name__ == "__main__":
-    generate_large_function_csv("function_data_1gb.csv")
+    generate_large_function_csv("function_data_5gb.csv", target_size_gb=5)
