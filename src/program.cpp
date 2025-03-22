@@ -57,7 +57,15 @@ auto fn = compile_res.second;
                           0, NULL,                // shared memory size and stream
                           args, 0));              // arguments and extra options
 }
+  std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now().time_since_epoch())
+                   .count()
+            << std::endl;
   CHECK_CUDA(cuCtxSynchronize());
+  std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now().time_since_epoch())
+                   .count()
+            << std::endl;
 if (pid_c + batch_size < n_progs) {
 for (size_t i = 0; i < batch_size; i++) {
   cuModuleUnload(outs[i].first);
